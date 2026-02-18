@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.vscode/
+uploads/
+test_images/
+Medicinal_Leaf_Dataset/
+ml_env/
