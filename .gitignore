@@ -8,3 +8,6 @@ uploads/
 test_images/
 Medicinal_Leaf_Dataset/
 ml_env/
+*.keras
+*.h5
+models/
