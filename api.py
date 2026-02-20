@@ -1,14 +1,17 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from plant_app.ml.predictor import PlantPredictor
+from medicinal_data import MedicinalData   # ✅ Import the class
 import os
 
 app = FastAPI()
 
-# CORS (change "*" to frontend URL in production)
+# -----------------------------
+# CORS Configuration
+# -----------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Change in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,20 +31,32 @@ except Exception as e:
     predictor = None
 
 
+# -----------------------------
+# Root Endpoint
+# -----------------------------
 @app.get("/")
 def root():
     return {"message": "Medicinal Plant API is running"}
 
 
+# -----------------------------
+# Prediction Endpoint
+# -----------------------------
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     if predictor is None:
         return {"error": "Model not loaded"}
 
     image_bytes = await file.read()
+
+    # Get prediction from model
     plant_name, confidence = predictor.predict(image_bytes)
+
+    # Get medicinal uses from class method
+    uses = MedicinalData.get_uses(plant_name)
 
     return {
         "plant_name": plant_name,
-        "confidence": round(confidence, 2)
+        "confidence": round(confidence, 2),
+        "medicinal_uses": uses
     }
