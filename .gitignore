@@ -11,3 +11,4 @@ ml_env/
 *.keras
 *.h5
 models/
+*.keras
