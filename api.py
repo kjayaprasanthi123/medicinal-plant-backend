@@ -1,75 +1,47 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from plant_app.ml.predictor import PlantPredictor
-from plant_app.medicinal_data import MedicinalData
+import os
 
+app = FastAPI()
 
-# Initialize FastAPI app
-app = FastAPI(title="Medicinal Plant Identification API")
-
-# -----------------------------
-# CORS Configuration
-# -----------------------------
+# CORS (change "*" to frontend URL in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, replace "*" with frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # -----------------------------
-# Load ML Model
+# Load ML Model (SAFE PATH)
 # -----------------------------
-try:
-    predictor = PlantPredictor("final_model.keras")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, "final_model.keras")
 
+try:
+    predictor = PlantPredictor(model_path)
+    print("✅ Model loaded successfully")
 except Exception as e:
-    print(f"Error loading model: {e}")
+    print(f"❌ Error loading model: {e}")
     predictor = None
 
 
-# -----------------------------
-# Root Endpoint
-# -----------------------------
 @app.get("/")
-def home():
+def root():
     return {"message": "Medicinal Plant API is running"}
 
 
-# -----------------------------
-# Prediction Endpoint
-# -----------------------------
 @app.post("/predict")
-async def predict_plant(file: UploadFile = File(...)):
-    
+async def predict(file: UploadFile = File(...)):
     if predictor is None:
-        raise HTTPException(status_code=500, detail="Model not loaded properly")
+        return {"error": "Model not loaded"}
 
-    try:
-        image_bytes = await file.read()
+    image_bytes = await file.read()
+    plant_name, confidence = predictor.predict(image_bytes)
 
-        plant_name, confidence = predictor.predict(image_bytes)
-
-        # 🔥 ADD CONFIDENCE THRESHOLD HERE
-        confidence = float(confidence)
-
-        if confidence < 70:   # You can adjust threshold (60–75)
-            return {
-                "plant_name": "Not a Medicinal Plant",
-                "confidence": confidence,
-                "medicinal_uses": [
-                    "Please upload a clear medicinal plant image."
-                ]
-            }
-
-        medicinal_uses = MedicinalData.get_uses(plant_name)
-
-        return {
-            "plant_name": plant_name,
-            "confidence": confidence,
-            "medicinal_uses": medicinal_uses
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "plant_name": plant_name,
+        "confidence": round(confidence, 2)
+    }
