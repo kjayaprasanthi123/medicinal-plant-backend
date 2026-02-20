@@ -22,7 +22,8 @@ app.add_middleware(
 # Load ML Model
 # -----------------------------
 try:
-    predictor = PlantPredictor("final_model.keras")
+    predictor = PlantPredictor("plant_app/models/final_model.keras")
+
 except Exception as e:
     print(f"Error loading model: {e}")
     predictor = None
